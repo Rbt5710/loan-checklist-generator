@@ -1,4 +1,4 @@
-# ICICI Bank — Loan Checklist Generator
+# Loan Checklist Generator
 
 A clean, deployable web tool for generating customised WhatsApp document checklists for Business Banking loan applications.
 
