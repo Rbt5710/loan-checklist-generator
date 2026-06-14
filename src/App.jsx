@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, ChevronDown, FileText, Zap, Mail, User, Building2, ClipboardList } from 'lucide-react';
-import { PROGRAMS, CONSTITUTIONS, DOC_CATALOG, getDocKeys, generateMessage } from './data';
+import { Copy, Check, ChevronDown, FileText, Zap, Mail, User, Building2, ClipboardList, ChevronRight } from 'lucide-react';
+import { PROGRAMS, CONSTITUTIONS, DOC_CATALOG, getDocKeys, getAllSubItemIds, generateMessage } from './data';
 import './App.css';
 
-const SELECT_PLACEHOLDER = '— Select —';
-
-function SelectField({ label, icon: Icon, value, onChange, options, placeholder }) {
+function SelectField({ label, icon: Icon, value, onChange, options }) {
   return (
     <div className="field">
-      <label className="field-label">
-        {Icon && <Icon size={13} />} {label}
-      </label>
+      <label className="field-label">{Icon && <Icon size={13} />} {label}</label>
       <div className="select-wrap">
         <select value={value} onChange={e => onChange(e.target.value)} className={value ? '' : 'placeholder'}>
-          <option value="">{placeholder || SELECT_PLACEHOLDER}</option>
-          {options.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
+          <option value="">— Select —</option>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <ChevronDown size={14} className="select-icon" />
       </div>
@@ -28,38 +22,127 @@ function Toggle({ label, value, onChange }) {
   return (
     <div className="toggle-row" onClick={() => onChange(!value)}>
       <span className="toggle-label">{label}</span>
-      <div className={`toggle ${value ? 'on' : ''}`}>
-        <div className="toggle-knob" />
-      </div>
+      <div className={`toggle ${value ? 'on' : ''}`}><div className="toggle-knob" /></div>
     </div>
   );
 }
 
-function DocSection({ title, icon: Icon, color, keys, checkedKeys, onToggle }) {
-  if (!keys.length) return null;
+function DocGroup({ docKey, checkedSubIds, onSubToggle }) {
+  const doc = DOC_CATALOG[docKey];
+  if (!doc) return null;
+  const [open, setOpen] = useState(true);
+  const checkedCount = doc.items.filter(i => checkedSubIds.includes(i.id)).length;
+  const allChecked = checkedCount === doc.items.length;
+  const someChecked = checkedCount > 0 && !allChecked;
+
+  const toggleAll = (e) => {
+    e.stopPropagation();
+    const ids = doc.items.map(i => i.id);
+    if (allChecked) ids.forEach(id => onSubToggle(id, false));
+    else ids.forEach(id => onSubToggle(id, true));
+  };
+
+  if (doc.cat === 'step') {
+    const checked = checkedSubIds.includes(doc.items[0]?.id);
+    return (
+      <label className={`doc-item flat ${checked ? 'checked' : ''}`}>
+        <input type="checkbox" checked={checked} onChange={() => {
+          const ids = doc.items.map(i => i.id);
+          ids.forEach(id => onSubToggle(id, !checked));
+        }} />
+        <div className="doc-check">{checked && <Check size={10} />}</div>
+        <span className="doc-item-label">{doc.label}</span>
+      </label>
+    );
+  }
+
+  if (doc.cat === 'annexure') {
+    return (
+      <div className="doc-group">
+        <div className="doc-group-header" onClick={() => setOpen(o => !o)}>
+          <label className={`doc-item group-parent ${allChecked ? 'checked' : someChecked ? 'partial' : ''}`} onClick={e => e.stopPropagation()}>
+            <input type="checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = someChecked; }} onChange={toggleAll} />
+            <div className="doc-check">{allChecked ? <Check size={10} /> : someChecked ? <span className="partial-dash" /> : null}</div>
+            <span className="doc-item-label">{doc.label}</span>
+          </label>
+          <ChevronRight size={13} className={`chevron ${open ? 'open' : ''}`} />
+        </div>
+        {open && (
+          <div className="doc-subitems">
+            {doc.items.map(item => {
+              if (item.id.endsWith('_0')) return null;
+              const checked = checkedSubIds.includes(item.id);
+              return (
+                <label key={item.id} className={`doc-subitem ${checked ? 'checked' : ''}`}>
+                  <input type="checkbox" checked={checked} onChange={() => onSubToggle(item.id, !checked)} />
+                  <div className="doc-check sm">{checked && <Check size={8} />}</div>
+                  <span>{item.text.replace(/^[•]\s*/, '')}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (doc.items.length === 1) {
+    const checked = checkedSubIds.includes(doc.items[0].id);
+    return (
+      <label className={`doc-item flat ${checked ? 'checked' : ''}`}>
+        <input type="checkbox" checked={checked} onChange={() => onSubToggle(doc.items[0].id, !checked)} />
+        <div className="doc-check">{checked && <Check size={10} />}</div>
+        <span className="doc-item-label">{doc.label}</span>
+      </label>
+    );
+  }
+
   return (
-    <div className="doc-section">
-      <div className="doc-section-header" style={{ '--accent': color }}>
-        <Icon size={14} />
+    <div className="doc-group">
+      <div className="doc-group-header" onClick={() => setOpen(o => !o)}>
+        <label className={`doc-item group-parent ${allChecked ? 'checked' : someChecked ? 'partial' : ''}`} onClick={e => e.stopPropagation()}>
+          <input type="checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = someChecked; }} onChange={toggleAll} />
+          <div className="doc-check">{allChecked ? <Check size={10} /> : someChecked ? <span className="partial-dash" /> : null}</div>
+          <span className="doc-item-label">{doc.label}</span>
+          <span className="sub-count">{checkedCount}/{doc.items.length}</span>
+        </label>
+        <ChevronRight size={13} className={`chevron ${open ? 'open' : ''}`} />
+      </div>
+      {open && (
+        <div className="doc-subitems">
+          {doc.items.map(item => {
+            const checked = checkedSubIds.includes(item.id);
+            return (
+              <label key={item.id} className={`doc-subitem ${checked ? 'checked' : ''}`}>
+                <input type="checkbox" checked={checked} onChange={() => onSubToggle(item.id, !checked)} />
+                <div className="doc-check sm">{checked && <Check size={8} />}</div>
+                <span>{item.text}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DocSection({ title, icon: Icon, colorClass, keys, checkedSubIds, onSubToggle }) {
+  if (!keys.length) return null;
+  const totalItems = keys.reduce((acc, k) => acc + (DOC_CATALOG[k]?.items.length || 0), 0);
+  const checkedItems = keys.reduce((acc, k) => {
+    return acc + (DOC_CATALOG[k]?.items.filter(i => checkedSubIds.includes(i.id)).length || 0);
+  }, 0);
+  return (
+    <div className={`doc-section ${colorClass}`}>
+      <div className="doc-section-header">
+        <Icon size={13} />
         <span>{title}</span>
-        <span className="doc-count">{keys.filter(k => checkedKeys.includes(k)).length}/{keys.length}</span>
+        <span className="doc-count">{checkedItems}/{totalItems}</span>
       </div>
       <div className="doc-list">
-        {keys.map(k => {
-          const doc = DOC_CATALOG[k];
-          const checked = checkedKeys.includes(k);
-          return (
-            <label key={k} className={`doc-item ${checked ? 'checked' : ''}`}>
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => onToggle(k)}
-              />
-              <div className="doc-check">{checked && <Check size={10} />}</div>
-              <span className="doc-item-label">{doc.label}</span>
-            </label>
-          );
-        })}
+        {keys.map(k => (
+          <DocGroup key={k} docKey={k} checkedSubIds={checkedSubIds} onSubToggle={onSubToggle} />
+        ))}
       </div>
     </div>
   );
@@ -73,29 +156,27 @@ export default function App() {
   const [collateral, setCollateral] = useState(false);
   const [above5cr, setAbove5cr] = useState(false);
   const [docKeys, setDocKeys] = useState([]);
-  const [checkedKeys, setCheckedKeys] = useState([]);
+  const [checkedSubIds, setCheckedSubIds] = useState([]);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [generated, setGenerated] = useState(false);
 
   useEffect(() => {
-    if (!program || !constitution) { setDocKeys([]); setCheckedKeys([]); return; }
+    if (!program || !constitution) { setDocKeys([]); setCheckedSubIds([]); return; }
     const keys = getDocKeys({ program, constitution, coapplicant, collateral, above5cr });
     setDocKeys(keys);
-    setCheckedKeys(keys);
+    setCheckedSubIds(getAllSubItemIds(keys));
     setGenerated(false);
     setMessage('');
   }, [program, constitution, coapplicant, collateral, above5cr]);
 
-  const handleToggle = (key) => {
-    setCheckedKeys(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-    );
+  const handleSubToggle = (id, val) => {
+    setCheckedSubIds(prev => val ? [...prev, id] : prev.filter(x => x !== id));
     setGenerated(false);
   };
 
   const handleGenerate = () => {
-    const msg = generateMessage({ customerName, program, constitution, docKeys, checkedKeys });
+    const msg = generateMessage({ customerName, docKeys, checkedSubIds });
     setMessage(msg);
     setGenerated(true);
   };
@@ -131,37 +212,16 @@ export default function App() {
 
       <main className="main">
         <div className="layout">
-
-          {/* Left panel */}
           <div className="left-panel">
-
             <div className="card">
               <div className="card-title"><User size={14} /> Customer details</div>
               <div className="field">
                 <label className="field-label">Customer name</label>
-                <input
-                  className="text-input"
-                  type="text"
-                  placeholder="e.g. Ramesh Gupta"
-                  value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                />
+                <input className="text-input" type="text" placeholder="e.g. Ramesh Gupta" value={customerName} onChange={e => setCustomerName(e.target.value)} />
               </div>
               <div className="two-col">
-                <SelectField
-                  label="Program"
-                  icon={FileText}
-                  value={program}
-                  onChange={setProgram}
-                  options={PROGRAMS}
-                />
-                <SelectField
-                  label="Constitution"
-                  icon={Building2}
-                  value={constitution}
-                  onChange={setConstitution}
-                  options={CONSTITUTIONS}
-                />
+                <SelectField label="Program" icon={FileText} value={program} onChange={setProgram} options={PROGRAMS} />
+                <SelectField label="Constitution" icon={Building2} value={constitution} onChange={setConstitution} options={CONSTITUTIONS} />
               </div>
             </div>
 
@@ -175,34 +235,11 @@ export default function App() {
             {ready && docKeys.length > 0 && (
               <div className="card">
                 <div className="card-title"><ClipboardList size={14} /> Documents & steps</div>
-                <p className="card-hint">Uncheck items not applicable for this case</p>
-                <DocSection
-                  title="Documents"
-                  icon={FileText}
-                  color="#185FA5"
-                  keys={docGroups.doc}
-                  checkedKeys={checkedKeys}
-                  onToggle={handleToggle}
-                />
-                <DocSection
-                  title="Steps for customer"
-                  icon={Zap}
-                  color="#0F6E56"
-                  keys={docGroups.step}
-                  checkedKeys={checkedKeys}
-                  onToggle={handleToggle}
-                />
-                <DocSection
-                  title="Annexures (via registered email)"
-                  icon={Mail}
-                  color="#854F0B"
-                  keys={docGroups.annexure}
-                  checkedKeys={checkedKeys}
-                  onToggle={handleToggle}
-                />
-                <button className="btn-generate" onClick={handleGenerate}>
-                  Generate WhatsApp message
-                </button>
+                <p className="card-hint">Uncheck documents already received from customer</p>
+                <DocSection title="Documents" icon={FileText} colorClass="sec-blue" keys={docGroups.doc} checkedSubIds={checkedSubIds} onSubToggle={handleSubToggle} />
+                <DocSection title="Steps for customer" icon={Zap} colorClass="sec-green" keys={docGroups.step} checkedSubIds={checkedSubIds} onSubToggle={handleSubToggle} />
+                <DocSection title="Annexures (via registered email)" icon={Mail} colorClass="sec-amber" keys={docGroups.annexure} checkedSubIds={checkedSubIds} onSubToggle={handleSubToggle} />
+                <button className="btn-generate" onClick={handleGenerate}>Generate WhatsApp message</button>
               </div>
             )}
 
@@ -214,7 +251,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Right panel */}
           <div className="right-panel">
             <div className="card output-card">
               <div className="output-header">
@@ -226,9 +262,7 @@ export default function App() {
                 )}
               </div>
               {generated ? (
-                <div className="message-preview">
-                  <pre className="message-text">{message}</pre>
-                </div>
+                <div className="message-preview"><pre className="message-text">{message}</pre></div>
               ) : (
                 <div className="output-empty">
                   <Mail size={32} />
@@ -238,7 +272,6 @@ export default function App() {
               )}
             </div>
           </div>
-
         </div>
       </main>
     </div>
