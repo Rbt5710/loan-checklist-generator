@@ -1,7 +1,6 @@
 {
   "short_name": "Checklist Gen",
   "name": "Loan Checklist Generator",
-  ],
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#0A3D7A",
