@@ -1,12 +1,20 @@
-# Loan Checklist Generator
+# SME Loan — WhatsApp Checklist Generator
 
 A clean, deployable web tool for generating customised WhatsApp document checklists for Business Banking loan applications.
 
+## Problem
+Relationship Managers manually type document checklists over WhatsApp for every loan application — wrong documents, missing items, longer TAT, frustrated customers.
+
+## Solution
+Select the loan program + business constitution → get a perfectly formatted, copy-paste-ready WhatsApp message with the right documents, customer action steps, and annexure instructions — every time.
+
+Built from firsthand experience managing an SME lending portfolio at a large private sector bank.
+
 ## Features
-- 4 programs: GST OD, Banking Variant, Super Biz, PD/Financial Based
+- 4 loan programs: GST OD, Banking Variant, Super Biz, PD / Financial Based
 - 4 constitutions: Proprietorship, Partnership, Pvt Ltd, LLP
-- Auto-populates documents, Karza/Finfort steps, and annexures based on selection
-- Toggles for co-applicant, collateral, and ₹5Cr+ cases
+- Auto-populates documents, action steps, and annexures based on selection
+- Toggles for co-applicant, property collateral, and high-value cases
 - One-click copy of formatted WhatsApp message
 
 ## Local setup
@@ -16,6 +24,12 @@ npm install
 npm start
 ```
 
+## Deploy to Vercel (recommended — 2 minutes)
+
+1. Push this folder to a GitHub repo
+2. Go to [vercel.com](https://vercel.com) → New Project → Import your repo
+3. Click Deploy — live URL ready instantly, free
+
 ## Deploy to GitHub Pages
 
 1. Install gh-pages:
@@ -23,26 +37,17 @@ npm start
 npm install --save-dev gh-pages
 ```
 
-2. Add this to `package.json` (replace with your GitHub username and repo name):
+2. Add to `package.json`:
 ```json
 "homepage": "https://YOUR_USERNAME.github.io/YOUR_REPO_NAME"
 ```
 
-3. Push to GitHub, then run:
+3. Run:
 ```bash
 npm run deploy
 ```
 
-That's it — your app will be live at the homepage URL.
-
-## Deploy to Vercel (easiest)
-
-1. Push this folder to a GitHub repo
-2. Go to [vercel.com](https://vercel.com) → New Project → Import your repo
-3. Vercel auto-detects React. Click Deploy.
-4. Done — you get a live URL instantly.
-
 ## Tech stack
 - React 18
 - Lucide React (icons)
-- Pure CSS (no UI library dependency)
+- Pure CSS — no UI library dependency
